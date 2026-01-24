@@ -9,56 +9,59 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        :root { --primary-bg: #f8f9fa; --sidebar-width: 250px; }
-        body { background-color: var(--primary-bg); font-family: sans-serif; padding-bottom: 60px; }
+        body { background-color: #f3f4f6; font-family: 'Segoe UI', sans-serif; }
+        
+        /* 1. Login Screen Styling */
+        .login-container {
+            height: 100vh; display: flex; align-items: center; justify-content: center; background: #eef2f5;
+        }
+        .login-card {
+            width: 100%; max-width: 400px; padding: 2rem; background: white; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
 
-        /* Login Screen */
-        .login-wrap { height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .login-box { width: 100%; max-width: 400px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-
-        /* Desktop Sidebar */
+        /* 2. Sidebar Styling (Desktop) */
         .sidebar {
-            width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0;
-            background: #212529; color: white; z-index: 1000; padding-top: 20px;
-            transition: 0.3s;
+            width: 250px; height: 100vh; position: fixed; top: 0; left: 0;
+            background: #1e293b; color: white; z-index: 1000; transition: 0.3s;
+            overflow-y: auto;
         }
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); } /* Hide on Mobile */
-            .main-content { margin-left: 0 !important; }
+        .nav-link {
+            color: #94a3b8; padding: 12px 20px; cursor: pointer; border-left: 3px solid transparent;
         }
-        @media (min-width: 769px) {
-            .mobile-nav { display: none; } /* Hide Mobile Nav on Desktop */
-            .main-content { margin-left: var(--sidebar-width); }
+        .nav-link:hover { color: white; background: #334155; }
+        .nav-link.active { color: white; background: #334155; border-left-color: #3b82f6; }
+        
+        /* 3. Main Content Area */
+        .main-content {
+            margin-left: 250px; padding: 20px; transition: 0.3s;
         }
 
-        .nav-link { color: #aaa; padding: 15px 20px; cursor: pointer; display: block; text-decoration: none; }
-        .nav-link:hover { color: white; background: #343a40; }
-        .nav-link.active { color: white; background: #0d6efd; }
-        .nav-link i { width: 30px; text-align: center; }
+        /* 4. Mobile Responsiveness */
+        @media (max-width: 991px) {
+            .sidebar { transform: translateX(-100%); } /* Hide Sidebar on Mobile */
+            .main-content { margin-left: 0; padding-top: 70px; } /* Push content down for navbar */
+        }
 
-        /* Main Content */
-        .main-content { padding: 20px; transition: 0.3s; }
-
-        /* Cards & Stats */
-        .stat-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; align-items: center; }
-        .stat-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 15px; color: white; }
-
-        /* Table Fixes for Mobile */
-        .table-responsive { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .table th { background: #f1f1f1; font-size: 0.85rem; text-transform: uppercase; border: none; padding: 15px; white-space: nowrap; }
-        .table td { vertical-align: middle; padding: 12px 15px; white-space: nowrap; }
-
-        .hidden { display: none !important; }
+        /* Custom Cards */
+        .card-box {
+            background: white; border-radius: 12px; padding: 20px; border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 20px;
+        }
+        
+        /* Table Scroll Fix */
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        th { font-size: 0.85rem; text-transform: uppercase; color: #64748b; background: #f8fafc !important; }
+        td { vertical-align: middle; white-space: nowrap; }
     </style>
 </head>
 <body>
 
 {% if view == 'login' %}
-<div class="login-wrap">
-    <div class="login-box text-center">
-        <h3 class="mb-4">Admin Panel</h3>
-        <input type="password" id="adminPass" class="form-control mb-3" placeholder="Password">
-        <button onclick="doLogin()" class="btn btn-primary w-100 py-2">Login</button>
+<div class="login-container">
+    <div class="login-card text-center">
+        <h3 class="fw-bold mb-4 text-primary"><i class="fas fa-shield-alt"></i> Admin Panel</h3>
+        <input type="password" id="adminPass" class="form-control form-control-lg mb-3" placeholder="Enter Password">
+        <button onclick="doLogin()" class="btn btn-primary w-100 btn-lg">Login</button>
     </div>
 </div>
 <script>
@@ -68,140 +71,147 @@
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({password: pw})
         });
-        if(res.ok) location.reload(); else alert("Wrong Password");
+        if(res.ok) location.reload(); else alert("Wrong Password!");
     }
 </script>
-{% else %}
 
-<nav class="navbar navbar-dark bg-dark mobile-nav sticky-top">
+{% else %}
+<nav class="navbar navbar-dark bg-dark fixed-top d-lg-none">
     <div class="container-fluid">
-        <span class="navbar-brand mb-0 h1"><i class="fas fa-rocket me-2"></i> Recap Admin</span>
-        <button class="btn btn-outline-light border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+        <span class="navbar-brand"><i class="fas fa-rocket me-2"></i> Recap Admin</span>
+        <button class="btn btn-outline-light border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu">
             <i class="fas fa-bars fa-lg"></i>
         </button>
     </div>
 </nav>
 
-<div class="offcanvas-lg offcanvas-start sidebar bg-dark" tabindex="-1" id="mobileSidebar">
+<div class="sidebar d-none d-lg-block">
+    <div class="p-4 h4 fw-bold mb-0"><i class="fas fa-rocket text-primary me-2"></i> Admin</div>
+    <nav class="nav flex-column mt-2">
+        <a class="nav-link active" onclick="switchView('dashboard', this)"><i class="fas fa-chart-pie me-2"></i> Dashboard</a>
+        <a class="nav-link" onclick="switchView('users', this)"><i class="fas fa-users me-2"></i> User Manager</a>
+        <a class="nav-link" onclick="switchView('packages', this)"><i class="fas fa-box me-2"></i> Packages</a>
+        <a class="nav-link" onclick="switchView('verify', this)"><i class="fas fa-check-circle me-2"></i> Verification</a>
+        <a class="nav-link" onclick="switchView('settings', this)"><i class="fas fa-cogs me-2"></i> Settings</a>
+    </nav>
+</div>
+
+<div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="mobileMenu">
     <div class="offcanvas-header">
-        <h5 class="offcanvas-title text-white">Menu</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#mobileSidebar"></button>
+        <h5 class="offcanvas-title">Menu</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
     </div>
-    <div class="offcanvas-body p-0 d-block">
-        <div class="d-none d-lg-block p-3 text-white h4 mb-0"><i class="fas fa-rocket me-2"></i> Admin</div>
-        <hr class="d-none d-lg-block border-secondary">
+    <div class="offcanvas-body p-0">
         <nav class="nav flex-column">
-            <a class="nav-link active" onclick="navTo('dashboard')"><i class="fas fa-home"></i> Dashboard</a>
-            <a class="nav-link" onclick="navTo('users')"><i class="fas fa-users"></i> User Manager</a>
-            <a class="nav-link" onclick="navTo('packages')"><i class="fas fa-box"></i> Packages</a>
-            <a class="nav-link" onclick="navTo('verify')"><i class="fas fa-shield-alt"></i> Verification</a>
-            <a class="nav-link" onclick="navTo('settings')"><i class="fas fa-cog"></i> Settings</a>
+            <a class="nav-link active" onclick="switchView('dashboard', this)"><i class="fas fa-chart-pie me-2"></i> Dashboard</a>
+            <a class="nav-link" onclick="switchView('users', this)"><i class="fas fa-users me-2"></i> User Manager</a>
+            <a class="nav-link" onclick="switchView('packages', this)"><i class="fas fa-box me-2"></i> Packages</a>
+            <a class="nav-link" onclick="switchView('verify', this)"><i class="fas fa-check-circle me-2"></i> Verification</a>
+            <a class="nav-link" onclick="switchView('settings', this)"><i class="fas fa-cogs me-2"></i> Settings</a>
         </nav>
     </div>
 </div>
 
 <div class="main-content">
-    
-    <section id="tab-dashboard">
-        <h4 class="mb-3">Overview</h4>
+
+    <div id="view-dashboard" class="content-section">
+        <h4 class="mb-4">Overview</h4>
         <div class="row g-3">
             <div class="col-12 col-md-6">
-                <div class="stat-card">
-                    <div class="stat-icon bg-primary"><i class="fas fa-users"></i></div>
+                <div class="card-box d-flex align-items-center">
+                    <div class="bg-primary text-white rounded p-3 me-3"><i class="fas fa-users fa-2x"></i></div>
                     <div>
-                        <small class="text-muted">Total Users</small>
-                        <h3 class="mb-0" id="stat-users">...</h3>
+                        <h6 class="text-muted mb-0">Total Users</h6>
+                        <h2 class="mb-0 fw-bold" id="stat-users">-</h2>
                     </div>
                 </div>
             </div>
             <div class="col-12 col-md-6">
-                <div class="stat-card">
-                    <div class="stat-icon bg-success"><i class="fas fa-clock"></i></div>
+                <div class="card-box d-flex align-items-center">
+                    <div class="bg-success text-white rounded p-3 me-3"><i class="fas fa-user-clock fa-2x"></i></div>
                     <div>
-                        <small class="text-muted">Active Today</small>
-                        <h3 class="mb-0" id="stat-active">...</h3>
+                        <h6 class="text-muted mb-0">Active Today</h6>
+                        <h2 class="mb-0 fw-bold" id="stat-active">-</h2>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
 
-    <section id="tab-users" class="hidden">
-        <h4 class="mb-3">Users</h4>
-        <div class="input-group mb-3">
-            <input type="text" id="userSearch" class="form-control" placeholder="Search ID/Name">
-            <button class="btn btn-primary" onclick="searchUsers()"><i class="fas fa-search"></i></button>
+    <div id="view-users" class="content-section d-none">
+        <h4 class="mb-3">User Manager</h4>
+        <div class="card-box p-3">
+            <div class="input-group mb-3">
+                <input type="text" id="userSearch" class="form-control" placeholder="Search ID or Name...">
+                <button class="btn btn-primary" onclick="searchUsers()"><i class="fas fa-search"></i></button>
+            </div>
+            <div class="table-wrapper">
+                <table class="table table-hover">
+                    <thead><tr><th>User</th><th>Coins</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody id="userTableBody"></tbody>
+                </table>
+            </div>
         </div>
-        
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead><tr><th>User Info</th><th>Coins</th><th>Verified</th><th>Action</th></tr></thead>
-                <tbody id="userTableBody"></tbody>
-            </table>
-        </div>
-    </section>
+    </div>
 
-    <section id="tab-packages" class="hidden">
+    <div id="view-packages" class="content-section d-none">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="mb-0">Packages</h4>
-            <button class="btn btn-sm btn-primary" onclick="openPkgModal()">+ New</button>
+            <h4>Packages</h4>
+            <button class="btn btn-primary btn-sm" onclick="openPkgModal()">+ New</button>
         </div>
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead><tr><th>Name</th><th>Coins</th><th>Price</th><th>Action</th></tr></thead>
-                <tbody id="pkgTableBody"></tbody>
-            </table>
+        <div class="card-box p-0">
+            <div class="table-wrapper">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th class="ps-3">Name</th><th>Coins</th><th>Price</th><th>Action</th></tr></thead>
+                    <tbody id="pkgTableBody"></tbody>
+                </table>
+            </div>
         </div>
-    </section>
+    </div>
 
-    <section id="tab-settings" class="hidden">
-        <h4 class="mb-3">System Config</h4>
-        
-        <div class="card mb-3 p-3 border-0 shadow-sm">
-            <h6 class="text-primary border-bottom pb-2">Global Logic</h6>
-            <label class="small text-muted">Daily Free Count</label>
-            <input type="number" id="conf-daily" class="form-control mb-2">
-            <label class="small text-muted">Cost Per Video</label>
-            <input type="number" id="conf-cost" class="form-control mb-2">
-        </div>
-
-        <div class="card mb-3 p-3 border-0 shadow-sm">
-            <h6 class="text-primary border-bottom pb-2">Payment Info</h6>
-            <label class="small text-muted">Method</label>
-            <input type="text" id="pay-method" class="form-control mb-2" placeholder="Kpay">
-            <label class="small text-muted">Account</label>
-            <input type="text" id="pay-acc" class="form-control mb-2">
-            <label class="small text-muted">Instructions</label>
-            <textarea id="pay-ins" class="form-control mb-2" rows="3"></textarea>
-        </div>
-        
-        <button onclick="saveConfig()" class="btn btn-success w-100 py-2">Save Settings</button>
-    </section>
-
-    <section id="tab-verify" class="hidden">
-        <h4 class="mb-3">Force Join</h4>
-        <div class="card p-3 border-0 shadow-sm">
-            <label class="fw-bold mb-1">Bot Reply Message</label>
+    <div id="view-verify" class="content-section d-none">
+        <h4 class="mb-3">Verification</h4>
+        <div class="card-box">
+            <label class="fw-bold mb-1">Bot Message</label>
             <input type="text" id="verify-msg" class="form-control mb-3">
-            
             <label class="fw-bold mb-1">Channels (JSON)</label>
             <textarea id="verify-channels" class="form-control mb-3" rows="5"></textarea>
-            <small class="d-block text-muted mb-3">Ex: [{"id": "-100123", "name": "A", "link": "..."}]</small>
-            
-            <button onclick="saveVerify()" class="btn btn-primary w-100">Save Verification</button>
+            <small class="text-muted d-block mb-3">Format: [{"id":"-100x","name":"A","link":"..."}]</small>
+            <button onclick="saveVerify()" class="btn btn-primary w-100">Save</button>
         </div>
-    </section>
+    </div>
+
+    <div id="view-settings" class="content-section d-none">
+        <h4 class="mb-3">Settings</h4>
+        <div class="card-box">
+            <h6 class="text-primary border-bottom pb-2 mb-3">Config</h6>
+            <label class="small text-muted">Daily Limit</label>
+            <input type="number" id="conf-daily" class="form-control mb-2">
+            <label class="small text-muted">Cost (Coins)</label>
+            <input type="number" id="conf-cost" class="form-control mb-3">
+            
+            <h6 class="text-primary border-bottom pb-2 mb-3">Payment</h6>
+            <label class="small text-muted">Method</label>
+            <input type="text" id="pay-method" class="form-control mb-2">
+            <label class="small text-muted">Account</label>
+            <input type="text" id="pay-acc" class="form-control mb-2">
+            <label class="small text-muted">Instruction</label>
+            <textarea id="pay-ins" class="form-control mb-3" rows="2"></textarea>
+            
+            <button onclick="saveConfig()" class="btn btn-success w-100">Save Changes</button>
+        </div>
+    </div>
 
 </div>
 
 <div class="modal fade" id="topupModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Top-up</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header"><h5 class="modal-title">Top Up</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <input type="hidden" id="topup-id">
                 <h5 id="topup-name" class="text-center text-primary mb-3"></h5>
-                <input type="number" id="topup-amount" class="form-control form-control-lg text-center" placeholder="Amount">
+                <input type="number" id="topup-amount" class="form-control text-center" placeholder="Amount">
             </div>
             <div class="modal-footer"><button onclick="submitTopup()" class="btn btn-success w-100">Confirm</button></div>
         </div>
@@ -211,12 +221,12 @@
 <div class="modal fade" id="pkgModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Package</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header"><h5 class="modal-title">Edit Package</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <input type="hidden" id="pkg-id">
-                <input type="text" id="pkg-name" class="form-control mb-2" placeholder="Name (Starter)">
-                <input type="number" id="pkg-coins" class="form-control mb-2" placeholder="Coins (10)">
-                <input type="text" id="pkg-price" class="form-control mb-2" placeholder="Price (1000)">
+                <input type="text" id="pkg-name" class="form-control mb-2" placeholder="Name">
+                <input type="number" id="pkg-coins" class="form-control mb-2" placeholder="Coins">
+                <input type="text" id="pkg-price" class="form-control mb-2" placeholder="Price">
             </div>
             <div class="modal-footer"><button onclick="savePackage()" class="btn btn-primary w-100">Save</button></div>
         </div>
@@ -224,31 +234,45 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
-    // --- NAVIGATION LOGIC ---
-    function navTo(tab) {
-        document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
-        document.getElementById('tab-' + tab).classList.remove('hidden');
+    // --- SAFE NAVIGATION SYSTEM ---
+    function switchView(viewName, navEl) {
+        // 1. Hide all sections
+        document.querySelectorAll('.content-section').forEach(el => el.classList.add('d-none'));
+        // 2. Show target section
+        const target = document.getElementById('view-' + viewName);
+        if(target) target.classList.remove('d-none');
         
-        // Update Sidebar Active State
+        // 3. Update Active Link (Desktop & Mobile)
         document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-        // Simple hack to highlight current nav
-        event.target.closest('.nav-link').classList.add('active');
+        if(navEl) navEl.classList.add('active');
 
-        // Close mobile sidebar if open
-        const mobileMenu = document.getElementById('mobileSidebar');
+        // 4. Close Mobile Menu (if open)
+        const mobileMenu = document.getElementById('mobileMenu');
         const bsOffcanvas = bootstrap.Offcanvas.getInstance(mobileMenu);
         if(bsOffcanvas) bsOffcanvas.hide();
 
-        if(tab === 'dashboard') loadStats();
-        if(tab === 'users') searchUsers();
-        if(tab === 'packages') loadPackages();
-        if(tab === 'settings' || tab === 'verify') loadConfig();
+        // 5. Load Data (Fail-safe: catch errors so UI doesn't freeze)
+        try {
+            if(viewName === 'dashboard') loadStats();
+            if(viewName === 'users') searchUsers();
+            if(viewName === 'packages') loadPackages();
+            if(viewName === 'settings' || viewName === 'verify') loadConfig();
+        } catch(e) {
+            console.error("Data load error:", e);
+        }
     }
 
-    // --- API FUNCTIONS (Same Logic, Just connected to new UI) ---
-    
+    // --- API FUNCTIONS ---
+    async function loadStats() {
+        try {
+            const res = await fetch('/api/stats');
+            const d = await res.json();
+            document.getElementById('stat-users').innerText = d.total_users || 0;
+            document.getElementById('stat-active').innerText = d.active_today || 0;
+        } catch(e) {}
+    }
+
     async function searchUsers() {
         const q = document.getElementById('userSearch').value;
         const res = await fetch(`/api/users?q=${q}`);
@@ -256,22 +280,21 @@
         const tbody = document.getElementById('userTableBody');
         tbody.innerHTML = '';
         users.forEach(u => {
-            const status = u.is_verified ? '<span class="text-success">✔</span>' : '<span class="text-warning">✖</span>';
+            const badge = u.is_verified ? '<span class="badge bg-success">✔</span>' : '<span class="badge bg-secondary">✖</span>';
             tbody.innerHTML += `
                 <tr>
                     <td>
                         <div class="fw-bold">${u.username}</div>
-                        <small class="text-muted">${u.telegram_id}</small>
+                        <small class="text-muted" style="font-size:10px">${u.telegram_id}</small>
                     </td>
                     <td>${u.coins}</td>
-                    <td>${status}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" onclick="openTopup('${u.telegram_id}', '${u.username}')">Topup</button>
-                    </td>
+                    <td>${badge}</td>
+                    <td><button class="btn btn-sm btn-primary" onclick="openTopup('${u.telegram_id}', '${u.username}')">+</button></td>
                 </tr>`;
         });
     }
 
+    // Topup Logic
     let topupModal = new bootstrap.Modal(document.getElementById('topupModal'));
     function openTopup(id, name) {
         document.getElementById('topup-id').value = id;
@@ -281,10 +304,11 @@
     async function submitTopup() {
         const id = document.getElementById('topup-id').value;
         const amt = document.getElementById('topup-amount').value;
-        await fetch('/api/topup', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({telegram_id: id, amount: amt}) });
-        topupModal.hide(); searchUsers(); alert("Sent!");
+        await fetch('/api/topup', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({telegram_id:id, amount:amt})});
+        topupModal.hide(); searchUsers(); alert("Success!");
     }
 
+    // Packages Logic
     let pkgModal = new bootstrap.Modal(document.getElementById('pkgModal'));
     async function loadPackages() {
         const res = await fetch('/api/packages');
@@ -294,13 +318,13 @@
         pkgs.forEach(p => {
             tbody.innerHTML += `
                 <tr>
-                    <td>${p.name}</td><td>${p.coins}</td><td>${p.price}</td>
+                    <td class="ps-3 fw-bold">${p.name}</td><td>${p.coins}</td><td>${p.price}</td>
                     <td><button class="btn btn-sm btn-danger" onclick="delPkg('${p.id}')">Del</button></td>
                 </tr>`;
         });
     }
     function openPkgModal() {
-        document.getElementById('pkg-id').value = '';
+        document.getElementById('pkg-id').value = ''; 
         document.getElementById('pkg-name').value = '';
         document.getElementById('pkg-coins').value = '';
         document.getElementById('pkg-price').value = '';
@@ -321,18 +345,21 @@
         if(confirm("Delete?")) { await fetch(`/api/packages?id=${id}`, {method:'DELETE'}); loadPackages(); }
     }
 
+    // Config Logic
     async function loadConfig() {
-        const res = await fetch('/api/config');
-        const c = await res.json();
-        if(c) {
-            document.getElementById('conf-daily').value = c.daily_free_limit;
-            document.getElementById('conf-cost').value = c.video_cost;
-            document.getElementById('pay-method').value = c.payment_info.method;
-            document.getElementById('pay-acc').value = c.payment_info.account;
-            document.getElementById('pay-ins').value = c.payment_info.instruction;
-            document.getElementById('verify-msg').value = c.verification.message;
-            document.getElementById('verify-channels').value = JSON.stringify(c.verification.channels, null, 2);
-        }
+        try {
+            const res = await fetch('/api/config');
+            const c = await res.json();
+            if(c) {
+                document.getElementById('conf-daily').value = c.daily_free_limit;
+                document.getElementById('conf-cost').value = c.video_cost;
+                document.getElementById('pay-method').value = c.payment_info.method;
+                document.getElementById('pay-acc').value = c.payment_info.account;
+                document.getElementById('pay-ins').value = c.payment_info.instruction;
+                document.getElementById('verify-msg').value = c.verification.message;
+                document.getElementById('verify-channels').value = JSON.stringify(c.verification.channels, null, 2);
+            }
+        } catch(e){}
     }
     async function saveConfig() {
         const data = {
@@ -345,22 +372,20 @@
             }
         };
         await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-        alert("Saved!");
+        alert("Config Saved!");
     }
     async function saveVerify() {
         try {
             const data = { verification: { message: document.getElementById('verify-msg').value, channels: JSON.parse(document.getElementById('verify-channels').value) } };
             await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-            alert("Saved!");
-        } catch(e) { alert("Invalid JSON!"); }
-    }
-    async function loadStats() {
-        try { const res = await fetch('/api/stats'); const d = await res.json(); document.getElementById('stat-users').innerText = d.total_users; document.getElementById('stat-active').innerText = d.active_today; } catch(e){}
+            alert("Verification Saved!");
+        } catch(e) { alert("JSON Error!"); }
     }
 
     // Init
     loadStats();
 </script>
+
 {% endif %}
 </body>
 </html>
