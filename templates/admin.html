@@ -2,62 +2,51 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recap Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Recap Admin</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        :root {
-            --sidebar-width: 260px;
-            --primary-color: #4f46e5;
-            --bg-color: #f3f4f6;
-        }
-        body { background-color: var(--bg-color); font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
-        
-        /* Sidebar Styling */
-        .sidebar {
-            width: var(--sidebar-width);
-            height: 100vh;
-            position: fixed;
-            left: 0; top: 0;
-            background: #1e1e2d;
-            color: #fff;
-            transition: all 0.3s;
-            z-index: 1000;
-        }
-        .sidebar-header { padding: 20px; font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid #2d2d3f; }
-        .nav-link { color: #a2a3b7; padding: 12px 20px; border-left: 3px solid transparent; cursor: pointer; transition: 0.2s; }
-        .nav-link:hover { color: #fff; background: #2b2b40; }
-        .nav-link.active { color: #fff; background: #2b2b40; border-left-color: var(--primary-color); }
-        .nav-link i { width: 25px; }
-
-        /* Main Content */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            padding: 30px;
-            transition: all 0.3s;
-        }
-
-        /* Cards */
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); background: #fff; margin-bottom: 20px; }
-        .card-header { background: #fff; border-bottom: 1px solid #eee; padding: 15px 20px; font-weight: bold; font-size: 1.1rem; }
-        .stat-card { display: flex; align-items: center; padding: 20px; }
-        .stat-icon { width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; }
-        .bg-blue-light { background: #e0e7ff; color: var(--primary-color); }
-        .bg-green-light { background: #dcfce7; color: #16a34a; }
-
-        /* Tables */
-        .table th { border-top: none; color: #6b7280; font-size: 0.9rem; text-transform: uppercase; }
-        .table td { vertical-align: middle; }
+        :root { --primary-bg: #f8f9fa; --sidebar-width: 250px; }
+        body { background-color: var(--primary-bg); font-family: sans-serif; padding-bottom: 60px; }
 
         /* Login Screen */
-        .login-wrapper {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #eef2f5; display: flex; justify-content: center; align-items: center; z-index: 2000;
+        .login-wrap { height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-box { width: 100%; max-width: 400px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+
+        /* Desktop Sidebar */
+        .sidebar {
+            width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0;
+            background: #212529; color: white; z-index: 1000; padding-top: 20px;
+            transition: 0.3s;
         }
-        .login-box { width: 400px; padding: 40px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); } /* Hide on Mobile */
+            .main-content { margin-left: 0 !important; }
+        }
+        @media (min-width: 769px) {
+            .mobile-nav { display: none; } /* Hide Mobile Nav on Desktop */
+            .main-content { margin-left: var(--sidebar-width); }
+        }
+
+        .nav-link { color: #aaa; padding: 15px 20px; cursor: pointer; display: block; text-decoration: none; }
+        .nav-link:hover { color: white; background: #343a40; }
+        .nav-link.active { color: white; background: #0d6efd; }
+        .nav-link i { width: 30px; text-align: center; }
+
+        /* Main Content */
+        .main-content { padding: 20px; transition: 0.3s; }
+
+        /* Cards & Stats */
+        .stat-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; align-items: center; }
+        .stat-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 15px; color: white; }
+
+        /* Table Fixes for Mobile */
+        .table-responsive { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .table th { background: #f1f1f1; font-size: 0.85rem; text-transform: uppercase; border: none; padding: 15px; white-space: nowrap; }
+        .table td { vertical-align: middle; padding: 12px 15px; white-space: nowrap; }
 
         .hidden { display: none !important; }
     </style>
@@ -65,13 +54,11 @@
 <body>
 
 {% if view == 'login' %}
-<div class="login-wrapper">
+<div class="login-wrap">
     <div class="login-box text-center">
-        <h3 class="mb-4 fw-bold text-primary">Admin Access</h3>
-        <div class="mb-3">
-            <input type="password" id="adminPass" class="form-control form-control-lg" placeholder="Enter Admin Password">
-        </div>
-        <button onclick="doLogin()" class="btn btn-primary btn-lg w-100">Unlock Panel</button>
+        <h3 class="mb-4">Admin Panel</h3>
+        <input type="password" id="adminPass" class="form-control mb-3" placeholder="Password">
+        <button onclick="doLogin()" class="btn btn-primary w-100 py-2">Login</button>
     </div>
 </div>
 <script>
@@ -81,44 +68,58 @@
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({password: pw})
         });
-        if(res.ok) location.reload(); else alert("Wrong Password!");
+        if(res.ok) location.reload(); else alert("Wrong Password");
     }
 </script>
 {% else %}
 
-<nav class="sidebar">
-    <div class="sidebar-header">
-        <i class="fas fa-rocket me-2"></i> Recap Maker
+<nav class="navbar navbar-dark bg-dark mobile-nav sticky-top">
+    <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1"><i class="fas fa-rocket me-2"></i> Recap Admin</span>
+        <button class="btn btn-outline-light border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+            <i class="fas fa-bars fa-lg"></i>
+        </button>
     </div>
-    <ul class="nav flex-column mt-3">
-        <li class="nav-item"><a class="nav-link active" onclick="switchTab('dashboard', this)"><i class="fas fa-chart-pie"></i> Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" onclick="switchTab('users', this)"><i class="fas fa-users"></i> User Manager</a></li>
-        <li class="nav-item"><a class="nav-link" onclick="switchTab('packages', this)"><i class="fas fa-box-open"></i> Packages</a></li>
-        <li class="nav-item"><a class="nav-link" onclick="switchTab('verify', this)"><i class="fas fa-user-shield"></i> Verification</a></li>
-        <li class="nav-item"><a class="nav-link" onclick="switchTab('settings', this)"><i class="fas fa-sliders-h"></i> Settings</a></li>
-    </ul>
 </nav>
+
+<div class="offcanvas-lg offcanvas-start sidebar bg-dark" tabindex="-1" id="mobileSidebar">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title text-white">Menu</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#mobileSidebar"></button>
+    </div>
+    <div class="offcanvas-body p-0 d-block">
+        <div class="d-none d-lg-block p-3 text-white h4 mb-0"><i class="fas fa-rocket me-2"></i> Admin</div>
+        <hr class="d-none d-lg-block border-secondary">
+        <nav class="nav flex-column">
+            <a class="nav-link active" onclick="navTo('dashboard')"><i class="fas fa-home"></i> Dashboard</a>
+            <a class="nav-link" onclick="navTo('users')"><i class="fas fa-users"></i> User Manager</a>
+            <a class="nav-link" onclick="navTo('packages')"><i class="fas fa-box"></i> Packages</a>
+            <a class="nav-link" onclick="navTo('verify')"><i class="fas fa-shield-alt"></i> Verification</a>
+            <a class="nav-link" onclick="navTo('settings')"><i class="fas fa-cog"></i> Settings</a>
+        </nav>
+    </div>
+</div>
 
 <div class="main-content">
     
     <section id="tab-dashboard">
-        <h3 class="mb-4">Dashboard Overview</h3>
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card stat-card">
-                    <div class="stat-icon bg-blue-light"><i class="fas fa-users"></i></div>
+        <h4 class="mb-3">Overview</h4>
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon bg-primary"><i class="fas fa-users"></i></div>
                     <div>
-                        <h6 class="text-muted mb-1">Total Users</h6>
-                        <h3 class="fw-bold mb-0" id="stat-users">Loading...</h3>
+                        <small class="text-muted">Total Users</small>
+                        <h3 class="mb-0" id="stat-users">...</h3>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card stat-card">
-                    <div class="stat-icon bg-green-light"><i class="fas fa-user-check"></i></div>
+            <div class="col-12 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon bg-success"><i class="fas fa-clock"></i></div>
                     <div>
-                        <h6 class="text-muted mb-1">Active Today</h6>
-                        <h3 class="fw-bold mb-0" id="stat-active">Loading...</h3>
+                        <small class="text-muted">Active Today</small>
+                        <h3 class="mb-0" id="stat-active">...</h3>
                     </div>
                 </div>
             </div>
@@ -126,147 +127,128 @@
     </section>
 
     <section id="tab-users" class="hidden">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3>User Manager</h3>
+        <h4 class="mb-3">Users</h4>
+        <div class="input-group mb-3">
+            <input type="text" id="userSearch" class="form-control" placeholder="Search ID/Name">
+            <button class="btn btn-primary" onclick="searchUsers()"><i class="fas fa-search"></i></button>
         </div>
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span>User List</span>
-                <div class="input-group" style="width: 300px;">
-                    <input type="text" id="userSearch" class="form-control" placeholder="Search ID or Username">
-                    <button class="btn btn-primary" onclick="searchUsers()"><i class="fas fa-search"></i></button>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <table class="table table-hover mb-0">
-                    <thead class="bg-light"><tr><th class="ps-4">User Info</th><th>Balance</th><th>Status</th><th class="text-end pe-4">Actions</th></tr></thead>
-                    <tbody id="userTableBody"></tbody>
-                </table>
-            </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead><tr><th>User Info</th><th>Coins</th><th>Verified</th><th>Action</th></tr></thead>
+                <tbody id="userTableBody"></tbody>
+            </table>
         </div>
     </section>
 
     <section id="tab-packages" class="hidden">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3>Coin Packages</h3>
-            <button class="btn btn-primary" onclick="openPackageModal()"><i class="fas fa-plus me-2"></i> Add New Package</button>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">Packages</h4>
+            <button class="btn btn-sm btn-primary" onclick="openPkgModal()">+ New</button>
         </div>
-        <div class="card">
-            <div class="card-body p-0">
-                <table class="table table-hover">
-                    <thead class="bg-light"><tr><th class="ps-4">Package Name</th><th>Coins</th><th>Price</th><th class="text-end pe-4">Action</th></tr></thead>
-                    <tbody id="pkgTableBody"></tbody>
-                </table>
-            </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead><tr><th>Name</th><th>Coins</th><th>Price</th><th>Action</th></tr></thead>
+                <tbody id="pkgTableBody"></tbody>
+            </table>
         </div>
     </section>
 
     <section id="tab-settings" class="hidden">
-        <h3 class="mb-4">System Settings</h3>
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">Global Logic</div>
-                    <div class="card-body">
-                        <label class="form-label">Daily Free Limit</label>
-                        <input type="number" id="conf-daily" class="form-control mb-3">
-                        <label class="form-label">Cost Per Video (Coins)</label>
-                        <input type="number" id="conf-cost" class="form-control mb-3">
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">Payment Info</div>
-                    <div class="card-body">
-                        <label class="form-label">Method Name</label>
-                        <input type="text" id="pay-method" class="form-control mb-3" placeholder="e.g. Kpay">
-                        <label class="form-label">Account / Contact</label>
-                        <input type="text" id="pay-acc" class="form-control mb-3">
-                        <label class="form-label">Instructions</label>
-                        <textarea id="pay-ins" class="form-control mb-3" rows="3"></textarea>
-                    </div>
-                </div>
-            </div>
+        <h4 class="mb-3">System Config</h4>
+        
+        <div class="card mb-3 p-3 border-0 shadow-sm">
+            <h6 class="text-primary border-bottom pb-2">Global Logic</h6>
+            <label class="small text-muted">Daily Free Count</label>
+            <input type="number" id="conf-daily" class="form-control mb-2">
+            <label class="small text-muted">Cost Per Video</label>
+            <input type="number" id="conf-cost" class="form-control mb-2">
         </div>
-        <button onclick="saveConfig()" class="btn btn-success btn-lg"><i class="fas fa-save me-2"></i> Save Changes</button>
+
+        <div class="card mb-3 p-3 border-0 shadow-sm">
+            <h6 class="text-primary border-bottom pb-2">Payment Info</h6>
+            <label class="small text-muted">Method</label>
+            <input type="text" id="pay-method" class="form-control mb-2" placeholder="Kpay">
+            <label class="small text-muted">Account</label>
+            <input type="text" id="pay-acc" class="form-control mb-2">
+            <label class="small text-muted">Instructions</label>
+            <textarea id="pay-ins" class="form-control mb-2" rows="3"></textarea>
+        </div>
+        
+        <button onclick="saveConfig()" class="btn btn-success w-100 py-2">Save Settings</button>
     </section>
 
     <section id="tab-verify" class="hidden">
-        <h3 class="mb-4">Verification Settings</h3>
-        <div class="card">
-            <div class="card-body">
-                <label class="form-label fw-bold">Bot Reply Message</label>
-                <input type="text" id="verify-msg" class="form-control mb-3">
-                
-                <label class="form-label fw-bold">Channels List (JSON)</label>
-                <div class="alert alert-light border">
-                    <small>Format: <code>[{"id": "-100xxx", "name": "Name", "link": "https://..."}]</code></small>
-                </div>
-                <textarea id="verify-channels" class="form-control" rows="6" style="font-family: monospace;"></textarea>
-                <button onclick="saveVerify()" class="btn btn-primary mt-3">Update Verification</button>
-            </div>
+        <h4 class="mb-3">Force Join</h4>
+        <div class="card p-3 border-0 shadow-sm">
+            <label class="fw-bold mb-1">Bot Reply Message</label>
+            <input type="text" id="verify-msg" class="form-control mb-3">
+            
+            <label class="fw-bold mb-1">Channels (JSON)</label>
+            <textarea id="verify-channels" class="form-control mb-3" rows="5"></textarea>
+            <small class="d-block text-muted mb-3">Ex: [{"id": "-100123", "name": "A", "link": "..."}]</small>
+            
+            <button onclick="saveVerify()" class="btn btn-primary w-100">Save Verification</button>
         </div>
     </section>
 
 </div>
 
 <div class="modal fade" id="topupModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Manual Top-up</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header"><h5 class="modal-title">Top-up</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <input type="hidden" id="topup-id">
-                <h5 id="topup-name" class="text-primary mb-3"></h5>
-                <label class="form-label">Add Coins Amount</label>
-                <input type="number" id="topup-amount" class="form-control form-control-lg" placeholder="e.g. 50">
+                <h5 id="topup-name" class="text-center text-primary mb-3"></h5>
+                <input type="number" id="topup-amount" class="form-control form-control-lg text-center" placeholder="Amount">
             </div>
-            <div class="modal-footer">
-                <button onclick="submitTopup()" class="btn btn-success w-100">Confirm Top-up</button>
-            </div>
+            <div class="modal-footer"><button onclick="submitTopup()" class="btn btn-success w-100">Confirm</button></div>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="pkgModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Edit Package</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header"><h5 class="modal-title">Package</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <input type="hidden" id="pkg-id">
-                <label class="form-label">Package Name</label>
-                <input type="text" id="pkg-name" class="form-control mb-2" placeholder="e.g. Starter Pack">
-                <label class="form-label">Coins Amount</label>
-                <input type="number" id="pkg-coins" class="form-control mb-2" placeholder="10">
-                <label class="form-label">Display Price</label>
-                <input type="text" id="pkg-price" class="form-control mb-2" placeholder="e.g. 1,000 MMK">
+                <input type="text" id="pkg-name" class="form-control mb-2" placeholder="Name (Starter)">
+                <input type="number" id="pkg-coins" class="form-control mb-2" placeholder="Coins (10)">
+                <input type="text" id="pkg-price" class="form-control mb-2" placeholder="Price (1000)">
             </div>
-            <div class="modal-footer">
-                <button onclick="savePackage()" class="btn btn-primary w-100">Save Package</button>
-            </div>
+            <div class="modal-footer"><button onclick="savePackage()" class="btn btn-primary w-100">Save</button></div>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    // --- UI LOGIC ---
-    function switchTab(tabId, navElement) {
-        document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
-        document.getElementById('tab-' + tabId).classList.remove('hidden');
-        
-        if(navElement) {
-            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-            navElement.classList.add('active');
-        }
 
-        if(tabId === 'dashboard') loadStats();
-        if(tabId === 'users') searchUsers();
-        if(tabId === 'packages') loadPackages();
-        if(tabId === 'settings' || tabId === 'verify') loadConfig();
+<script>
+    // --- NAVIGATION LOGIC ---
+    function navTo(tab) {
+        document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
+        document.getElementById('tab-' + tab).classList.remove('hidden');
+        
+        // Update Sidebar Active State
+        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+        // Simple hack to highlight current nav
+        event.target.closest('.nav-link').classList.add('active');
+
+        // Close mobile sidebar if open
+        const mobileMenu = document.getElementById('mobileSidebar');
+        const bsOffcanvas = bootstrap.Offcanvas.getInstance(mobileMenu);
+        if(bsOffcanvas) bsOffcanvas.hide();
+
+        if(tab === 'dashboard') loadStats();
+        if(tab === 'users') searchUsers();
+        if(tab === 'packages') loadPackages();
+        if(tab === 'settings' || tab === 'verify') loadConfig();
     }
 
-    // --- USERS & TOPUP ---
+    // --- API FUNCTIONS (Same Logic, Just connected to new UI) ---
+    
     async function searchUsers() {
         const q = document.getElementById('userSearch').value;
         const res = await fetch(`/api/users?q=${q}`);
@@ -274,20 +256,17 @@
         const tbody = document.getElementById('userTableBody');
         tbody.innerHTML = '';
         users.forEach(u => {
-            const verifiedBadge = u.is_verified 
-                ? '<span class="badge bg-success">Verified</span>' 
-                : '<span class="badge bg-warning text-dark">Unverified</span>';
-            
+            const status = u.is_verified ? '<span class="text-success">✔</span>' : '<span class="text-warning">✖</span>';
             tbody.innerHTML += `
                 <tr>
-                    <td class="ps-4">
-                        <div class="fw-bold text-primary">${u.username}</div>
-                        <small class="text-muted">ID: ${u.telegram_id}</small>
+                    <td>
+                        <div class="fw-bold">${u.username}</div>
+                        <small class="text-muted">${u.telegram_id}</small>
                     </td>
-                    <td><span class="fw-bold fs-5">${u.coins}</span> 💎</td>
-                    <td>${verifiedBadge}</td>
-                    <td class="text-end pe-4">
-                        <button class="btn btn-sm btn-outline-success" onclick="openTopup('${u.telegram_id}', '${u.username}')"><i class="fas fa-plus-circle"></i> Top-up</button>
+                    <td>${u.coins}</td>
+                    <td>${status}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="openTopup('${u.telegram_id}', '${u.username}')">Topup</button>
                     </td>
                 </tr>`;
         });
@@ -297,24 +276,16 @@
     function openTopup(id, name) {
         document.getElementById('topup-id').value = id;
         document.getElementById('topup-name').innerText = name;
-        document.getElementById('topup-amount').value = '';
         topupModal.show();
     }
     async function submitTopup() {
         const id = document.getElementById('topup-id').value;
         const amt = document.getElementById('topup-amount').value;
-        await fetch('/api/topup', {
-            method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({telegram_id: id, amount: amt})
-        });
-        topupModal.hide();
-        searchUsers();
-        alert("Top-up Sent!");
+        await fetch('/api/topup', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({telegram_id: id, amount: amt}) });
+        topupModal.hide(); searchUsers(); alert("Sent!");
     }
 
-    // --- PACKAGES ---
     let pkgModal = new bootstrap.Modal(document.getElementById('pkgModal'));
-    
     async function loadPackages() {
         const res = await fetch('/api/packages');
         const pkgs = await res.json();
@@ -323,24 +294,18 @@
         pkgs.forEach(p => {
             tbody.innerHTML += `
                 <tr>
-                    <td class="ps-4 fw-bold">${p.name}</td>
-                    <td>${p.coins} Coins</td>
-                    <td>${p.price}</td>
-                    <td class="text-end pe-4">
-                        <button class="btn btn-sm btn-danger" onclick="deletePackage('${p.id}')"><i class="fas fa-trash"></i></button>
-                    </td>
+                    <td>${p.name}</td><td>${p.coins}</td><td>${p.price}</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="delPkg('${p.id}')">Del</button></td>
                 </tr>`;
         });
     }
-
-    function openPackageModal() {
-        document.getElementById('pkg-id').value = ''; // Empty ID means new
+    function openPkgModal() {
+        document.getElementById('pkg-id').value = '';
         document.getElementById('pkg-name').value = '';
         document.getElementById('pkg-coins').value = '';
         document.getElementById('pkg-price').value = '';
         pkgModal.show();
     }
-
     async function savePackage() {
         const data = {
             id: document.getElementById('pkg-id').value || null,
@@ -350,24 +315,10 @@
             is_active: true
         };
         await fetch('/api/packages', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-        pkgModal.hide();
-        loadPackages();
+        pkgModal.hide(); loadPackages();
     }
-
-    async function deletePackage(id) {
-        if(!confirm("Are you sure?")) return;
-        await fetch(`/api/packages?id=${id}`, {method:'DELETE'});
-        loadPackages();
-    }
-
-    // --- CONFIG & STATS ---
-    async function loadStats() {
-        try {
-            const res = await fetch('/api/stats');
-            const d = await res.json();
-            document.getElementById('stat-users').innerText = d.total_users || 0;
-            document.getElementById('stat-active').innerText = d.active_today || 0;
-        } catch(e) {}
+    async function delPkg(id) {
+        if(confirm("Delete?")) { await fetch(`/api/packages?id=${id}`, {method:'DELETE'}); loadPackages(); }
     }
 
     async function loadConfig() {
@@ -379,12 +330,10 @@
             document.getElementById('pay-method').value = c.payment_info.method;
             document.getElementById('pay-acc').value = c.payment_info.account;
             document.getElementById('pay-ins').value = c.payment_info.instruction;
-            
             document.getElementById('verify-msg').value = c.verification.message;
             document.getElementById('verify-channels').value = JSON.stringify(c.verification.channels, null, 2);
         }
     }
-
     async function saveConfig() {
         const data = {
             daily_free_limit: parseInt(document.getElementById('conf-daily').value),
@@ -396,20 +345,17 @@
             }
         };
         await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-        alert("System Config Saved!");
+        alert("Saved!");
     }
-
     async function saveVerify() {
         try {
-            const data = {
-                verification: {
-                    message: document.getElementById('verify-msg').value,
-                    channels: JSON.parse(document.getElementById('verify-channels').value)
-                }
-            };
+            const data = { verification: { message: document.getElementById('verify-msg').value, channels: JSON.parse(document.getElementById('verify-channels').value) } };
             await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-            alert("Verification Settings Saved!");
-        } catch(e) { alert("Invalid JSON Format in Channels!"); }
+            alert("Saved!");
+        } catch(e) { alert("Invalid JSON!"); }
+    }
+    async function loadStats() {
+        try { const res = await fetch('/api/stats'); const d = await res.json(); document.getElementById('stat-users').innerText = d.total_users; document.getElementById('stat-active').innerText = d.active_today; } catch(e){}
     }
 
     // Init
