@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recap Maker Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background: #f4f6f9; }
+        .sidebar { min-height: 100vh; background: #343a40; color: white; }
+        .nav-link { color: #cfd2d6; cursor: pointer; }
+        .nav-link.active { background: #007bff; color: white; }
+        .nav-link:hover { color: white; }
+        .card-stat { border-left: 5px solid #007bff; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+{% if view == 'login' %}
+<div class="container d-flex justify-content-center align-items-center" style="height:100vh;">
+    <div class="card p-4 shadow" style="width: 350px;">
+        <h3 class="text-center mb-3">Admin Login</h3>
+        <input type="password" id="adminPass" class="form-control mb-3" placeholder="Password">
+        <button onclick="doLogin()" class="btn btn-primary w-100">Login</button>
+    </div>
+</div>
+<script>
+    async function doLogin() {
+        const pw = document.getElementById('adminPass').value;
+        const res = await fetch('/api/login', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({password: pw})
+        });
+        if(res.ok) location.reload(); else alert("Wrong Password");
+    }
+</script>
+{% else %}
+
+<div class="d-flex">
+    <div class="sidebar p-3 d-flex flex-column" style="width: 250px;">
+        <h4>🚀 Recap Admin</h4>
+        <hr>
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item"><a class="nav-link active" onclick="showTab('dashboard')"><i class="fas fa-chart-line me-2"></i> Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" onclick="showTab('users')"><i class="fas fa-users me-2"></i> User Manager</a></li>
+            <li class="nav-item"><a class="nav-link" onclick="showTab('packages')"><i class="fas fa-box me-2"></i> Packages</a></li>
+            <li class="nav-item"><a class="nav-link" onclick="showTab('verify')"><i class="fas fa-shield-alt me-2"></i> Verification</a></li>
+            <li class="nav-item"><a class="nav-link" onclick="showTab('settings')"><i class="fas fa-cogs me-2"></i> Settings</a></li>
+        </ul>
+    </div>
+
+    <div class="p-4 w-100">
+        <div id="tab-dashboard">
+            <h2>Dashboard</h2>
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card card-stat p-3 shadow-sm">
+                        <h5>Total Users</h5>
+                        <h2 id="stat-users">Loading...</h2>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-stat p-3 shadow-sm" style="border-color: #28a745;">
+                        <h5>Active Today</h5>
+                        <h2 id="stat-active">Loading...</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-users" class="hidden">
+            <h2>User Manager</h2>
+            <div class="input-group mb-3 mt-3">
+                <input type="text" id="userSearch" class="form-control" placeholder="Search Username or ID...">
+                <button class="btn btn-outline-primary" onclick="searchUsers()">Search</button>
+            </div>
+            <table class="table table-striped bg-white shadow-sm rounded">
+                <thead><tr><th>Telegram ID</th><th>Username</th><th>Coins</th><th>Verified</th><th>Action</th></tr></thead>
+                <tbody id="userTableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="tab-settings" class="hidden">
+            <h2>System Config</h2>
+            <div class="card p-3 mt-3">
+                <div class="mb-3">
+                    <label>Daily Free Limit</label>
+                    <input type="number" id="conf-daily" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label>Cost Per Video (Coins)</label>
+                    <input type="number" id="conf-cost" class="form-control">
+                </div>
+                <hr>
+                <h5>Payment Info</h5>
+                <div class="mb-3">
+                    <label>Contact Method</label>
+                    <input type="text" id="pay-method" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label>Account / Username</label>
+                    <input type="text" id="pay-acc" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label>Instruction Text</label>
+                    <textarea id="pay-ins" class="form-control"></textarea>
+                </div>
+                <button onclick="saveConfig()" class="btn btn-success">Save Config</button>
+            </div>
+        </div>
+        
+        <div id="tab-verify" class="hidden">
+            <h2>Verification Settings</h2>
+            <div class="alert alert-info">Manage Required Channels for Force Join.</div>
+             <div class="card p-3">
+                 <label>Verify Message</label>
+                 <input type="text" id="verify-msg" class="form-control mb-2">
+                 <label>Channels (JSON Format for now)</label>
+                 <textarea id="verify-channels" class="form-control mb-2" rows="5"></textarea>
+                 <small>Example: [{"id": "-100xxx", "name": "My Channel", "link": "https://t.me/..."}]</small>
+                 <button onclick="saveVerify()" class="btn btn-primary mt-2">Save</button>
+             </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="topupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Top-up User</h5></div>
+            <div class="modal-body">
+                <input type="hidden" id="topup-id">
+                <p>User: <b id="topup-name"></b></p>
+                <label>Add Coins Amount:</label>
+                <input type="number" id="topup-amount" class="form-control">
+            </div>
+            <div class="modal-footer">
+                <button onclick="submitTopup()" class="btn btn-primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // --- NAVIGATION ---
+    function showTab(tab) {
+        document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+        document.getElementById('tab-' + tab).classList.remove('hidden');
+        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+        event.target.closest('.nav-link').classList.add('active');
+        
+        if(tab === 'dashboard') loadStats();
+        if(tab === 'users') searchUsers();
+        if(tab === 'settings' || tab === 'verify') loadConfig();
+    }
+
+    // --- API CALLS ---
+    async function loadStats() {
+        const res = await fetch('/api/stats');
+        const d = await res.json();
+        document.getElementById('stat-users').innerText = d.total_users;
+        document.getElementById('stat-active').innerText = d.active_today;
+    }
+
+    async function searchUsers() {
+        const q = document.getElementById('userSearch').value;
+        const res = await fetch(`/api/users?q=${q}`);
+        const users = await res.json();
+        const tbody = document.getElementById('userTableBody');
+        tbody.innerHTML = '';
+        users.forEach(u => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${u.telegram_id}</td>
+                    <td>${u.username}</td>
+                    <td>${u.coins} 💎</td>
+                    <td>${u.is_verified ? '✅' : '❌'}</td>
+                    <td><button class="btn btn-sm btn-success" onclick="openTopup('${u.telegram_id}', '${u.username}')">Top-up</button></td>
+                </tr>`;
+        });
+    }
+
+    // --- TOPUP LOGIC ---
+    let topupModal = new bootstrap.Modal(document.getElementById('topupModal'));
+    function openTopup(id, name) {
+        document.getElementById('topup-id').value = id;
+        document.getElementById('topup-name').innerText = name;
+        topupModal.show();
+    }
+    async function submitTopup() {
+        const id = document.getElementById('topup-id').value;
+        const amt = document.getElementById('topup-amount').value;
+        await fetch('/api/topup', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({telegram_id: id, amount: amt})
+        });
+        topupModal.hide();
+        searchUsers();
+        alert("Top-up Success!");
+    }
+
+    // --- CONFIG LOGIC ---
+    async function loadConfig() {
+        const res = await fetch('/api/config');
+        const c = await res.json();
+        document.getElementById('conf-daily').value = c.daily_free_limit;
+        document.getElementById('conf-cost').value = c.video_cost;
+        document.getElementById('pay-method').value = c.payment_info.method;
+        document.getElementById('pay-acc').value = c.payment_info.account;
+        document.getElementById('pay-ins').value = c.payment_info.instruction;
+        
+        document.getElementById('verify-msg').value = c.verification.message;
+        document.getElementById('verify-channels').value = JSON.stringify(c.verification.channels, null, 2);
+    }
+
+    async function saveConfig() {
+        const data = {
+            daily_free_limit: parseInt(document.getElementById('conf-daily').value),
+            video_cost: parseInt(document.getElementById('conf-cost').value),
+            payment_info: {
+                method: document.getElementById('pay-method').value,
+                account: document.getElementById('pay-acc').value,
+                instruction: document.getElementById('pay-ins').value
+            }
+        };
+        await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+        alert("Saved!");
+    }
+
+    async function saveVerify() {
+        const data = {
+            verification: {
+                message: document.getElementById('verify-msg').value,
+                channels: JSON.parse(document.getElementById('verify-channels').value)
+            }
+        };
+        await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+        alert("Verification Settings Saved!");
+    }
+
+    // Init
+    loadStats();
+</script>
+{% endif %}
+</body>
+</html>
