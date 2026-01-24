@@ -3,9 +3,6 @@ import os
 import requests
 import secrets
 import datetime
-# ပြင်လိုက်သည့်အချက် (1): api.db မဟုတ်တော့ပါ
-from db import users_collection, config_collection, packages_collection, init_db
-
 # ပြင်လိုက်သည့်အချက် (2): template_folder="." (အစက်လေး ထည့်ပေးပါ)
 app = Flask(__name__, template_folder=".", static_folder="static")
 app.secret_key = os.environ.get("SECRET_KEY", "admin-secret-key")
