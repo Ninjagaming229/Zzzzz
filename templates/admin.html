@@ -3,27 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recap Maker Admin</title>
+    <title>Recap Admin Panel</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        body { background: #f4f6f9; }
-        .sidebar { min-height: 100vh; background: #343a40; color: white; }
-        .nav-link { color: #cfd2d6; cursor: pointer; }
-        .nav-link.active { background: #007bff; color: white; }
-        .nav-link:hover { color: white; }
-        .card-stat { border-left: 5px solid #007bff; }
-        .hidden { display: none; }
+        :root {
+            --sidebar-width: 260px;
+            --primary-color: #4f46e5;
+            --bg-color: #f3f4f6;
+        }
+        body { background-color: var(--bg-color); font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
+        
+        /* Sidebar Styling */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            left: 0; top: 0;
+            background: #1e1e2d;
+            color: #fff;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        .sidebar-header { padding: 20px; font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid #2d2d3f; }
+        .nav-link { color: #a2a3b7; padding: 12px 20px; border-left: 3px solid transparent; cursor: pointer; transition: 0.2s; }
+        .nav-link:hover { color: #fff; background: #2b2b40; }
+        .nav-link.active { color: #fff; background: #2b2b40; border-left-color: var(--primary-color); }
+        .nav-link i { width: 25px; }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            transition: all 0.3s;
+        }
+
+        /* Cards */
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); background: #fff; margin-bottom: 20px; }
+        .card-header { background: #fff; border-bottom: 1px solid #eee; padding: 15px 20px; font-weight: bold; font-size: 1.1rem; }
+        .stat-card { display: flex; align-items: center; padding: 20px; }
+        .stat-icon { width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; }
+        .bg-blue-light { background: #e0e7ff; color: var(--primary-color); }
+        .bg-green-light { background: #dcfce7; color: #16a34a; }
+
+        /* Tables */
+        .table th { border-top: none; color: #6b7280; font-size: 0.9rem; text-transform: uppercase; }
+        .table td { vertical-align: middle; }
+
+        /* Login Screen */
+        .login-wrapper {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #eef2f5; display: flex; justify-content: center; align-items: center; z-index: 2000;
+        }
+        .login-box { width: 400px; padding: 40px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
 {% if view == 'login' %}
-<div class="container d-flex justify-content-center align-items-center" style="height:100vh;">
-    <div class="card p-4 shadow" style="width: 350px;">
-        <h3 class="text-center mb-3">Admin Login</h3>
-        <input type="password" id="adminPass" class="form-control mb-3" placeholder="Password">
-        <button onclick="doLogin()" class="btn btn-primary w-100">Login</button>
+<div class="login-wrapper">
+    <div class="login-box text-center">
+        <h3 class="mb-4 fw-bold text-primary">Admin Access</h3>
+        <div class="mb-3">
+            <input type="password" id="adminPass" class="form-control form-control-lg" placeholder="Enter Admin Password">
+        </div>
+        <button onclick="doLogin()" class="btn btn-primary btn-lg w-100">Unlock Panel</button>
     </div>
 </div>
 <script>
@@ -33,112 +81,168 @@
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({password: pw})
         });
-        if(res.ok) location.reload(); else alert("Wrong Password");
+        if(res.ok) location.reload(); else alert("Wrong Password!");
     }
 </script>
 {% else %}
 
-<div class="d-flex">
-    <div class="sidebar p-3 d-flex flex-column" style="width: 250px;">
-        <h4>🚀 Recap Admin</h4>
-        <hr>
-        <ul class="nav nav-pills flex-column mb-auto">
-            <li class="nav-item"><a class="nav-link active" onclick="showTab('dashboard')"><i class="fas fa-chart-line me-2"></i> Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" onclick="showTab('users')"><i class="fas fa-users me-2"></i> User Manager</a></li>
-            <li class="nav-item"><a class="nav-link" onclick="showTab('packages')"><i class="fas fa-box me-2"></i> Packages</a></li>
-            <li class="nav-item"><a class="nav-link" onclick="showTab('verify')"><i class="fas fa-shield-alt me-2"></i> Verification</a></li>
-            <li class="nav-item"><a class="nav-link" onclick="showTab('settings')"><i class="fas fa-cogs me-2"></i> Settings</a></li>
-        </ul>
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <i class="fas fa-rocket me-2"></i> Recap Maker
     </div>
+    <ul class="nav flex-column mt-3">
+        <li class="nav-item"><a class="nav-link active" onclick="switchTab('dashboard', this)"><i class="fas fa-chart-pie"></i> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="switchTab('users', this)"><i class="fas fa-users"></i> User Manager</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="switchTab('packages', this)"><i class="fas fa-box-open"></i> Packages</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="switchTab('verify', this)"><i class="fas fa-user-shield"></i> Verification</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="switchTab('settings', this)"><i class="fas fa-sliders-h"></i> Settings</a></li>
+    </ul>
+</nav>
 
-    <div class="p-4 w-100">
-        <div id="tab-dashboard">
-            <h2>Dashboard</h2>
-            <div class="row mt-4">
-                <div class="col-md-4">
-                    <div class="card card-stat p-3 shadow-sm">
-                        <h5>Total Users</h5>
-                        <h2 id="stat-users">Loading...</h2>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card card-stat p-3 shadow-sm" style="border-color: #28a745;">
-                        <h5>Active Today</h5>
-                        <h2 id="stat-active">Loading...</h2>
+<div class="main-content">
+    
+    <section id="tab-dashboard">
+        <h3 class="mb-4">Dashboard Overview</h3>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card stat-card">
+                    <div class="stat-icon bg-blue-light"><i class="fas fa-users"></i></div>
+                    <div>
+                        <h6 class="text-muted mb-1">Total Users</h6>
+                        <h3 class="fw-bold mb-0" id="stat-users">Loading...</h3>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div id="tab-users" class="hidden">
-            <h2>User Manager</h2>
-            <div class="input-group mb-3 mt-3">
-                <input type="text" id="userSearch" class="form-control" placeholder="Search Username or ID...">
-                <button class="btn btn-outline-primary" onclick="searchUsers()">Search</button>
-            </div>
-            <table class="table table-striped bg-white shadow-sm rounded">
-                <thead><tr><th>Telegram ID</th><th>Username</th><th>Coins</th><th>Verified</th><th>Action</th></tr></thead>
-                <tbody id="userTableBody"></tbody>
-            </table>
-        </div>
-
-        <div id="tab-settings" class="hidden">
-            <h2>System Config</h2>
-            <div class="card p-3 mt-3">
-                <div class="mb-3">
-                    <label>Daily Free Limit</label>
-                    <input type="number" id="conf-daily" class="form-control">
+            <div class="col-md-4">
+                <div class="card stat-card">
+                    <div class="stat-icon bg-green-light"><i class="fas fa-user-check"></i></div>
+                    <div>
+                        <h6 class="text-muted mb-1">Active Today</h6>
+                        <h3 class="fw-bold mb-0" id="stat-active">Loading...</h3>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label>Cost Per Video (Coins)</label>
-                    <input type="number" id="conf-cost" class="form-control">
-                </div>
-                <hr>
-                <h5>Payment Info</h5>
-                <div class="mb-3">
-                    <label>Contact Method</label>
-                    <input type="text" id="pay-method" class="form-control">
-                </div>
-                <div class="mb-3">
-                    <label>Account / Username</label>
-                    <input type="text" id="pay-acc" class="form-control">
-                </div>
-                <div class="mb-3">
-                    <label>Instruction Text</label>
-                    <textarea id="pay-ins" class="form-control"></textarea>
-                </div>
-                <button onclick="saveConfig()" class="btn btn-success">Save Config</button>
             </div>
         </div>
-        
-        <div id="tab-verify" class="hidden">
-            <h2>Verification Settings</h2>
-            <div class="alert alert-info">Manage Required Channels for Force Join.</div>
-             <div class="card p-3">
-                 <label>Verify Message</label>
-                 <input type="text" id="verify-msg" class="form-control mb-2">
-                 <label>Channels (JSON Format for now)</label>
-                 <textarea id="verify-channels" class="form-control mb-2" rows="5"></textarea>
-                 <small>Example: [{"id": "-100xxx", "name": "My Channel", "link": "https://t.me/..."}]</small>
-                 <button onclick="saveVerify()" class="btn btn-primary mt-2">Save</button>
-             </div>
-        </div>
+    </section>
 
-    </div>
+    <section id="tab-users" class="hidden">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>User Manager</h3>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>User List</span>
+                <div class="input-group" style="width: 300px;">
+                    <input type="text" id="userSearch" class="form-control" placeholder="Search ID or Username">
+                    <button class="btn btn-primary" onclick="searchUsers()"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light"><tr><th class="ps-4">User Info</th><th>Balance</th><th>Status</th><th class="text-end pe-4">Actions</th></tr></thead>
+                    <tbody id="userTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section id="tab-packages" class="hidden">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>Coin Packages</h3>
+            <button class="btn btn-primary" onclick="openPackageModal()"><i class="fas fa-plus me-2"></i> Add New Package</button>
+        </div>
+        <div class="card">
+            <div class="card-body p-0">
+                <table class="table table-hover">
+                    <thead class="bg-light"><tr><th class="ps-4">Package Name</th><th>Coins</th><th>Price</th><th class="text-end pe-4">Action</th></tr></thead>
+                    <tbody id="pkgTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section id="tab-settings" class="hidden">
+        <h3 class="mb-4">System Settings</h3>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Global Logic</div>
+                    <div class="card-body">
+                        <label class="form-label">Daily Free Limit</label>
+                        <input type="number" id="conf-daily" class="form-control mb-3">
+                        <label class="form-label">Cost Per Video (Coins)</label>
+                        <input type="number" id="conf-cost" class="form-control mb-3">
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Payment Info</div>
+                    <div class="card-body">
+                        <label class="form-label">Method Name</label>
+                        <input type="text" id="pay-method" class="form-control mb-3" placeholder="e.g. Kpay">
+                        <label class="form-label">Account / Contact</label>
+                        <input type="text" id="pay-acc" class="form-control mb-3">
+                        <label class="form-label">Instructions</label>
+                        <textarea id="pay-ins" class="form-control mb-3" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button onclick="saveConfig()" class="btn btn-success btn-lg"><i class="fas fa-save me-2"></i> Save Changes</button>
+    </section>
+
+    <section id="tab-verify" class="hidden">
+        <h3 class="mb-4">Verification Settings</h3>
+        <div class="card">
+            <div class="card-body">
+                <label class="form-label fw-bold">Bot Reply Message</label>
+                <input type="text" id="verify-msg" class="form-control mb-3">
+                
+                <label class="form-label fw-bold">Channels List (JSON)</label>
+                <div class="alert alert-light border">
+                    <small>Format: <code>[{"id": "-100xxx", "name": "Name", "link": "https://..."}]</code></small>
+                </div>
+                <textarea id="verify-channels" class="form-control" rows="6" style="font-family: monospace;"></textarea>
+                <button onclick="saveVerify()" class="btn btn-primary mt-3">Update Verification</button>
+            </div>
+        </div>
+    </section>
+
 </div>
 
 <div class="modal fade" id="topupModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Top-up User</h5></div>
+            <div class="modal-header"><h5 class="modal-title">Manual Top-up</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <input type="hidden" id="topup-id">
-                <p>User: <b id="topup-name"></b></p>
-                <label>Add Coins Amount:</label>
-                <input type="number" id="topup-amount" class="form-control">
+                <h5 id="topup-name" class="text-primary mb-3"></h5>
+                <label class="form-label">Add Coins Amount</label>
+                <input type="number" id="topup-amount" class="form-control form-control-lg" placeholder="e.g. 50">
             </div>
             <div class="modal-footer">
-                <button onclick="submitTopup()" class="btn btn-primary">Confirm</button>
+                <button onclick="submitTopup()" class="btn btn-success w-100">Confirm Top-up</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="pkgModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Edit Package</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input type="hidden" id="pkg-id">
+                <label class="form-label">Package Name</label>
+                <input type="text" id="pkg-name" class="form-control mb-2" placeholder="e.g. Starter Pack">
+                <label class="form-label">Coins Amount</label>
+                <input type="number" id="pkg-coins" class="form-control mb-2" placeholder="10">
+                <label class="form-label">Display Price</label>
+                <input type="text" id="pkg-price" class="form-control mb-2" placeholder="e.g. 1,000 MMK">
+            </div>
+            <div class="modal-footer">
+                <button onclick="savePackage()" class="btn btn-primary w-100">Save Package</button>
             </div>
         </div>
     </div>
@@ -146,26 +250,23 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // --- NAVIGATION ---
-    function showTab(tab) {
-        document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
-        document.getElementById('tab-' + tab).classList.remove('hidden');
-        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-        event.target.closest('.nav-link').classList.add('active');
+    // --- UI LOGIC ---
+    function switchTab(tabId, navElement) {
+        document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
+        document.getElementById('tab-' + tabId).classList.remove('hidden');
         
-        if(tab === 'dashboard') loadStats();
-        if(tab === 'users') searchUsers();
-        if(tab === 'settings' || tab === 'verify') loadConfig();
+        if(navElement) {
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            navElement.classList.add('active');
+        }
+
+        if(tabId === 'dashboard') loadStats();
+        if(tabId === 'users') searchUsers();
+        if(tabId === 'packages') loadPackages();
+        if(tabId === 'settings' || tabId === 'verify') loadConfig();
     }
 
-    // --- API CALLS ---
-    async function loadStats() {
-        const res = await fetch('/api/stats');
-        const d = await res.json();
-        document.getElementById('stat-users').innerText = d.total_users;
-        document.getElementById('stat-active').innerText = d.active_today;
-    }
-
+    // --- USERS & TOPUP ---
     async function searchUsers() {
         const q = document.getElementById('userSearch').value;
         const res = await fetch(`/api/users?q=${q}`);
@@ -173,22 +274,30 @@
         const tbody = document.getElementById('userTableBody');
         tbody.innerHTML = '';
         users.forEach(u => {
+            const verifiedBadge = u.is_verified 
+                ? '<span class="badge bg-success">Verified</span>' 
+                : '<span class="badge bg-warning text-dark">Unverified</span>';
+            
             tbody.innerHTML += `
                 <tr>
-                    <td>${u.telegram_id}</td>
-                    <td>${u.username}</td>
-                    <td>${u.coins} 💎</td>
-                    <td>${u.is_verified ? '✅' : '❌'}</td>
-                    <td><button class="btn btn-sm btn-success" onclick="openTopup('${u.telegram_id}', '${u.username}')">Top-up</button></td>
+                    <td class="ps-4">
+                        <div class="fw-bold text-primary">${u.username}</div>
+                        <small class="text-muted">ID: ${u.telegram_id}</small>
+                    </td>
+                    <td><span class="fw-bold fs-5">${u.coins}</span> 💎</td>
+                    <td>${verifiedBadge}</td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-outline-success" onclick="openTopup('${u.telegram_id}', '${u.username}')"><i class="fas fa-plus-circle"></i> Top-up</button>
+                    </td>
                 </tr>`;
         });
     }
 
-    // --- TOPUP LOGIC ---
     let topupModal = new bootstrap.Modal(document.getElementById('topupModal'));
     function openTopup(id, name) {
         document.getElementById('topup-id').value = id;
         document.getElementById('topup-name').innerText = name;
+        document.getElementById('topup-amount').value = '';
         topupModal.show();
     }
     async function submitTopup() {
@@ -200,21 +309,80 @@
         });
         topupModal.hide();
         searchUsers();
-        alert("Top-up Success!");
+        alert("Top-up Sent!");
     }
 
-    // --- CONFIG LOGIC ---
+    // --- PACKAGES ---
+    let pkgModal = new bootstrap.Modal(document.getElementById('pkgModal'));
+    
+    async function loadPackages() {
+        const res = await fetch('/api/packages');
+        const pkgs = await res.json();
+        const tbody = document.getElementById('pkgTableBody');
+        tbody.innerHTML = '';
+        pkgs.forEach(p => {
+            tbody.innerHTML += `
+                <tr>
+                    <td class="ps-4 fw-bold">${p.name}</td>
+                    <td>${p.coins} Coins</td>
+                    <td>${p.price}</td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-danger" onclick="deletePackage('${p.id}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    function openPackageModal() {
+        document.getElementById('pkg-id').value = ''; // Empty ID means new
+        document.getElementById('pkg-name').value = '';
+        document.getElementById('pkg-coins').value = '';
+        document.getElementById('pkg-price').value = '';
+        pkgModal.show();
+    }
+
+    async function savePackage() {
+        const data = {
+            id: document.getElementById('pkg-id').value || null,
+            name: document.getElementById('pkg-name').value,
+            coins: parseInt(document.getElementById('pkg-coins').value),
+            price: document.getElementById('pkg-price').value,
+            is_active: true
+        };
+        await fetch('/api/packages', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+        pkgModal.hide();
+        loadPackages();
+    }
+
+    async function deletePackage(id) {
+        if(!confirm("Are you sure?")) return;
+        await fetch(`/api/packages?id=${id}`, {method:'DELETE'});
+        loadPackages();
+    }
+
+    // --- CONFIG & STATS ---
+    async function loadStats() {
+        try {
+            const res = await fetch('/api/stats');
+            const d = await res.json();
+            document.getElementById('stat-users').innerText = d.total_users || 0;
+            document.getElementById('stat-active').innerText = d.active_today || 0;
+        } catch(e) {}
+    }
+
     async function loadConfig() {
         const res = await fetch('/api/config');
         const c = await res.json();
-        document.getElementById('conf-daily').value = c.daily_free_limit;
-        document.getElementById('conf-cost').value = c.video_cost;
-        document.getElementById('pay-method').value = c.payment_info.method;
-        document.getElementById('pay-acc').value = c.payment_info.account;
-        document.getElementById('pay-ins').value = c.payment_info.instruction;
-        
-        document.getElementById('verify-msg').value = c.verification.message;
-        document.getElementById('verify-channels').value = JSON.stringify(c.verification.channels, null, 2);
+        if(c) {
+            document.getElementById('conf-daily').value = c.daily_free_limit;
+            document.getElementById('conf-cost').value = c.video_cost;
+            document.getElementById('pay-method').value = c.payment_info.method;
+            document.getElementById('pay-acc').value = c.payment_info.account;
+            document.getElementById('pay-ins').value = c.payment_info.instruction;
+            
+            document.getElementById('verify-msg').value = c.verification.message;
+            document.getElementById('verify-channels').value = JSON.stringify(c.verification.channels, null, 2);
+        }
     }
 
     async function saveConfig() {
@@ -228,18 +396,20 @@
             }
         };
         await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-        alert("Saved!");
+        alert("System Config Saved!");
     }
 
     async function saveVerify() {
-        const data = {
-            verification: {
-                message: document.getElementById('verify-msg').value,
-                channels: JSON.parse(document.getElementById('verify-channels').value)
-            }
-        };
-        await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-        alert("Verification Settings Saved!");
+        try {
+            const data = {
+                verification: {
+                    message: document.getElementById('verify-msg').value,
+                    channels: JSON.parse(document.getElementById('verify-channels').value)
+                }
+            };
+            await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+            alert("Verification Settings Saved!");
+        } catch(e) { alert("Invalid JSON Format in Channels!"); }
     }
 
     // Init
