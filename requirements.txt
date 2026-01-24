@@ -1,0 +1,6 @@
+flask
+pymongo
+python-telegram-bot
+dnspython
+gunicorn
+requests
