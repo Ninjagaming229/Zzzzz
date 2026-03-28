@@ -32,13 +32,23 @@ JWT_SECRET = os.environ.get("JWT_SECRET", "change_this_in_production")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = 30
 
-# Gemini TTS Keys (comma-separated)
-GEMINI_KEYS_RAW = os.environ.get("GEMINI_API_KEYS", os.environ.get("GEMINI_API_KEY", ""))
-GEMINI_KEYS = [k.strip() for k in GEMINI_KEYS_RAW.split(",") if k.strip()]
-_gemini_key_index = 0
+# Gemini API Keys — GEMINI_API_KEY_1, GEMINI_API_KEY_2, ... (unlimited)
+def _load_numbered_keys(prefix: str) -> list:
+    """Load keys from env vars like PREFIX_1, PREFIX_2, ... until no more found."""
+    keys = []
+    i = 1
+    while True:
+        k = os.environ.get(f"{prefix}_{i}", "")
+        if not k:
+            break
+        keys.append(k.strip())
+        i += 1
+    return keys
 
-# Groq Keys
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+GEMINI_KEYS = _load_numbered_keys("GEMINI_API_KEY")
+GROQ_KEYS = _load_numbered_keys("GROQ_API_KEY")
+
+logging.info(f"Loaded {len(GEMINI_KEYS)} Gemini keys, {len(GROQ_KEYS)} Groq keys")
 
 # Email (Resend)
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
@@ -570,26 +580,41 @@ async def refund_coins(req: RefundCoinsReq, user=Depends(get_current_user)):
 
 
 # ═══════════════════════════════════════════
-# AI PROXY — Gemini TTS
+# AI KEY ROTATION (pick 1 random, retry others on 429)
 # ═══════════════════════════════════════════
+
+import random
+
+def _rotation_order(keys: list) -> list:
+    """
+    Pick ONE random key first → if 429 → try remaining in random order.
+    Each request gets a different starting key, spreading load evenly.
+    """
+    if not keys:
+        return []
+    shuffled = keys.copy()
+    random.shuffle(shuffled)
+    return shuffled
+
+
+# ═══════════════════════════════════════════
+# AI PROXY — Gemini TTS (rotation + retry)
+# ═══════════════════════════════════════════
+
+# TTS models to try per key: flash first (higher RPM), then pro
+GEMINI_TTS_MODELS = [
+    "gemini-2.5-flash-preview-tts",
+    "gemini-2.5-pro-preview-tts",
+]
 
 class GeminiTTSReq(BaseModel):
     text: str
     voice: str = "Puck"
-    model: str = "gemini-2.5-flash-preview-tts"
 
 @app.post("/api/ai/tts")
 async def gemini_tts_proxy(req: GeminiTTSReq, user=Depends(get_current_user)):
-    global _gemini_key_index
-
     if not GEMINI_KEYS:
         raise HTTPException(503, "TTS service not configured")
-
-    # Round-robin key selection
-    key = GEMINI_KEYS[_gemini_key_index % len(GEMINI_KEYS)]
-    _gemini_key_index += 1
-
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{req.model}:generateContent?key={key}"
 
     payload = {
         "contents": [{"parts": [{"text": req.text}]}],
@@ -603,75 +628,113 @@ async def gemini_tts_proxy(req: GeminiTTSReq, user=Depends(get_current_user)):
         },
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=30) as http:
-            resp = await http.post(api_url, json=payload)
-            if resp.status_code == 200:
-                data = resp.json()
-                # Extract audio data from response
-                candidates = data.get("candidates", [])
-                if candidates:
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    for part in parts:
-                        if "inlineData" in part:
-                            return {
-                                "status": "success",
-                                "audio_data": part["inlineData"]["data"],
-                                "mime_type": part["inlineData"].get("mimeType", "audio/mp3"),
-                            }
-                raise HTTPException(500, "No audio in response")
-            else:
-                error_detail = resp.text[:200]
-                logging.error(f"Gemini TTS error: {resp.status_code} {error_detail}")
-                raise HTTPException(resp.status_code, f"TTS generation failed: {error_detail}")
-    except httpx.TimeoutException:
-        raise HTTPException(504, "TTS request timed out")
+    last_error = ""
+    shuffled_keys = _rotation_order(GEMINI_KEYS)
+
+    async with httpx.AsyncClient(timeout=30) as http:
+        # Try each key × each model
+        for key in shuffled_keys:
+            for model in GEMINI_TTS_MODELS:
+                try:
+                    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+                    resp = await http.post(api_url, json=payload)
+
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            for part in parts:
+                                if "inlineData" in part:
+                                    return {
+                                        "status": "success",
+                                        "audio_data": part["inlineData"]["data"],
+                                        "mime_type": part["inlineData"].get("mimeType", "audio/mp3"),
+                                    }
+
+                    elif resp.status_code == 429:
+                        # Rate limited — try next key/model
+                        logging.warning(f"Gemini TTS 429 on key ...{key[-6:]}/{model}")
+                        last_error = "Rate limited, retrying..."
+                        continue
+                    else:
+                        last_error = resp.text[:200]
+                        logging.warning(f"Gemini TTS {resp.status_code} on key ...{key[-6:]}/{model}: {last_error}")
+                        continue
+
+                except httpx.TimeoutException:
+                    last_error = "Timeout"
+                    continue
+                except Exception as e:
+                    last_error = str(e)
+                    continue
+
+    raise HTTPException(503, f"TTS failed after trying all keys. Last error: {last_error}")
 
 
 # ═══════════════════════════════════════════
-# AI PROXY — Groq STT (Subtitle generation)
+# AI PROXY — Groq STT (rotation + retry)
 # ═══════════════════════════════════════════
 
 @app.post("/api/ai/stt")
 async def groq_stt_proxy(request: Request, user=Depends(get_current_user)):
-    if not GROQ_API_KEY:
+    if not GROQ_KEYS:
         raise HTTPException(503, "STT service not configured")
 
-    # Receive audio file from app
     form = await request.form()
     audio_file = form.get("audio")
     if not audio_file:
         raise HTTPException(400, "No audio file provided")
 
-    language = form.get("language", "my")  # Myanmar default
+    language = form.get("language", "my")
     model = form.get("model", "whisper-large-v3")
-
     audio_bytes = await audio_file.read()
+    filename = audio_file.filename or "audio.mp3"
 
-    try:
-        async with httpx.AsyncClient(timeout=60) as http:
-            resp = await http.post(
-                "https://api.groq.com/openai/v1/audio/transcriptions",
-                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
-                files={"file": (audio_file.filename or "audio.mp3", audio_bytes, "audio/mpeg")},
-                data={
-                    "model": model,
-                    "language": language,
-                    "response_format": "verbose_json",
-                    "timestamp_granularities[]": "segment",
-                },
-            )
-            if resp.status_code == 200:
-                return {"status": "success", "result": resp.json()}
-            else:
-                raise HTTPException(resp.status_code, f"STT failed: {resp.text[:200]}")
-    except httpx.TimeoutException:
-        raise HTTPException(504, "STT request timed out")
+    last_error = ""
+    shuffled_keys = _rotation_order(GROQ_KEYS)
+
+    async with httpx.AsyncClient(timeout=60) as http:
+        for key in shuffled_keys:
+            try:
+                resp = await http.post(
+                    "https://api.groq.com/openai/v1/audio/transcriptions",
+                    headers={"Authorization": f"Bearer {key}"},
+                    files={"file": (filename, audio_bytes, "audio/mpeg")},
+                    data={
+                        "model": model,
+                        "language": language,
+                        "response_format": "verbose_json",
+                        "timestamp_granularities[]": "segment",
+                    },
+                )
+                if resp.status_code == 200:
+                    return {"status": "success", "result": resp.json()}
+                elif resp.status_code == 429:
+                    logging.warning(f"Groq STT 429 on key ...{key[-6:]}")
+                    last_error = "Rate limited"
+                    continue
+                else:
+                    last_error = resp.text[:200]
+                    continue
+            except httpx.TimeoutException:
+                last_error = "Timeout"
+                continue
+            except Exception as e:
+                last_error = str(e)
+                continue
+
+    raise HTTPException(503, f"STT failed after trying all keys. Last error: {last_error}")
 
 
 # ═══════════════════════════════════════════
-# AI PROXY — Gemini Text (Script Analysis)
+# AI PROXY — Gemini Text (rotation + retry)
 # ═══════════════════════════════════════════
+
+GEMINI_TEXT_MODELS = [
+    "gemini-2.0-flash",
+    "gemini-2.5-flash-preview-04-17",
+]
 
 class AnalyzeReq(BaseModel):
     text: str
@@ -682,29 +745,42 @@ async def gemini_analyze_proxy(req: AnalyzeReq, user=Depends(get_current_user)):
     if not GEMINI_KEYS:
         raise HTTPException(503, "AI service not configured")
 
-    key = GEMINI_KEYS[0]
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={key}"
-
-    payload = {
-        "contents": [{"parts": [{"text": req.text}]}],
-    }
+    payload = {"contents": [{"parts": [{"text": req.text}]}]}
     if req.system_instruction:
         payload["systemInstruction"] = {"parts": [{"text": req.system_instruction}]}
 
-    try:
-        async with httpx.AsyncClient(timeout=30) as http:
-            resp = await http.post(api_url, json=payload)
-            if resp.status_code == 200:
-                data = resp.json()
-                candidates = data.get("candidates", [])
-                if candidates:
-                    text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                    return {"status": "success", "text": text}
-                raise HTTPException(500, "No response from AI")
-            else:
-                raise HTTPException(resp.status_code, f"AI error: {resp.text[:200]}")
-    except httpx.TimeoutException:
-        raise HTTPException(504, "AI request timed out")
+    last_error = ""
+    shuffled_keys = _rotation_order(GEMINI_KEYS)
+
+    async with httpx.AsyncClient(timeout=30) as http:
+        for key in shuffled_keys:
+            for model in GEMINI_TEXT_MODELS:
+                try:
+                    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+                    resp = await http.post(api_url, json=payload)
+
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                            return {"status": "success", "text": text}
+
+                    elif resp.status_code == 429:
+                        logging.warning(f"Gemini analyze 429 on key ...{key[-6:]}/{model}")
+                        last_error = "Rate limited"
+                        continue
+                    else:
+                        last_error = resp.text[:200]
+                        continue
+                except httpx.TimeoutException:
+                    last_error = "Timeout"
+                    continue
+                except Exception as e:
+                    last_error = str(e)
+                    continue
+
+    raise HTTPException(503, f"AI analysis failed after trying all keys. Last error: {last_error}")
 
 
 # ═══════════════════════════════════════════
