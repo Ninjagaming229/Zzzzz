@@ -288,11 +288,15 @@ async def register(req: RegisterReq):
 
 @app.post("/api/login")
 async def login(req: LoginReq):
+    # Trim whitespace from inputs
+    username = req.username.strip()
+    password = req.password
+
     # Find by username OR email
     user = users_col.find_one({
         "$or": [
-            {"login_username": req.username},
-            {"email": req.username},
+            {"login_username": username},
+            {"email": username},
         ]
     })
 
@@ -308,17 +312,17 @@ async def login(req: LoginReq):
 
     if stored_pw.startswith("$2b$") or stored_pw.startswith("$2a$"):
         # Already bcrypt hashed
-        password_ok = verify_password(req.password, stored_pw)
+        password_ok = verify_password(password, stored_pw)
     else:
-        # Legacy plaintext — verify and migrate to bcrypt
-        if req.password == stored_pw:
+        # Legacy plaintext — compare and migrate
+        if password == stored_pw:
             password_ok = True
-            new_hash = hash_password(req.password)
+            new_hash = hash_password(password)
             users_col.update_one(
                 {"_id": user["_id"]},
                 {"$set": {"password": new_hash}}
             )
-            logging.info(f"Migrated password to bcrypt for user {user['login_username']}")
+            logging.info(f"Migrated password to bcrypt for user {user.get('login_username')}")
 
     if not password_ok:
         raise HTTPException(401, "Invalid username or password")
@@ -335,6 +339,27 @@ async def login(req: LoginReq):
         "gold": coins["gold"],
         "silver": coins["silver"],
         "email_missing": not user.get("email"),
+    }
+
+
+# --- TEMPORARY DEBUG: Check user password format (remove after debugging) ---
+@app.get("/admin/api/debug-user")
+async def debug_user(username: str = "", _=Depends(require_admin)):
+    if not username:
+        return {"error": "Add ?username=xxx"}
+    user = users_col.find_one({"login_username": username})
+    if not user:
+        return {"found": False, "searched": username}
+    stored_pw = user.get("password", "")
+    return {
+        "found": True,
+        "username": user.get("login_username"),
+        "has_password_field": "password" in user,
+        "password_length": len(stored_pw),
+        "password_starts_with": stored_pw[:10] if stored_pw else "(empty)",
+        "is_bcrypt": stored_pw.startswith("$2b$") or stored_pw.startswith("$2a$"),
+        "is_plaintext": not (stored_pw.startswith("$2b$") or stored_pw.startswith("$2a$")) and len(stored_pw) > 0,
+        "all_fields": [k for k in user.keys() if k != "password"],
     }
 
 
