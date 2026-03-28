@@ -342,27 +342,6 @@ async def login(req: LoginReq):
     }
 
 
-# --- TEMPORARY DEBUG: Check user password format (remove after debugging) ---
-@app.get("/admin/api/debug-user")
-async def debug_user(username: str = "", _=Depends(require_admin)):
-    if not username:
-        return {"error": "Add ?username=xxx"}
-    user = users_col.find_one({"login_username": username})
-    if not user:
-        return {"found": False, "searched": username}
-    stored_pw = user.get("password", "")
-    return {
-        "found": True,
-        "username": user.get("login_username"),
-        "has_password_field": "password" in user,
-        "password_length": len(stored_pw),
-        "password_starts_with": stored_pw[:10] if stored_pw else "(empty)",
-        "is_bcrypt": stored_pw.startswith("$2b$") or stored_pw.startswith("$2a$"),
-        "is_plaintext": not (stored_pw.startswith("$2b$") or stored_pw.startswith("$2a$")) and len(stored_pw) > 0,
-        "all_fields": [k for k in user.keys() if k != "password"],
-    }
-
-
 @app.post("/api/link-email")
 async def link_email(req: LinkEmailReq, user=Depends(get_current_user)):
     if users_col.find_one({"email": req.email, "_id": {"$ne": user["_id"]}}):
@@ -1035,6 +1014,27 @@ async def admin_stats(_=Depends(require_admin)):
         "checkins_today": checkins_today,
         "new_users_week": new_users_week,
         "recent_transactions": recent_tx,
+    }
+
+
+# --- TEMPORARY DEBUG: Check user password format ---
+@app.get("/admin/api/debug-user")
+async def debug_user(username: str = "", _=Depends(require_admin)):
+    if not username:
+        return {"error": "Add ?username=xxx"}
+    user = users_col.find_one({"login_username": username})
+    if not user:
+        return {"found": False, "searched": username}
+    stored_pw = user.get("password", "")
+    return {
+        "found": True,
+        "username": user.get("login_username"),
+        "has_password_field": "password" in user,
+        "password_length": len(stored_pw),
+        "password_starts_with": stored_pw[:10] if stored_pw else "(empty)",
+        "is_bcrypt": stored_pw.startswith("$2b$") or stored_pw.startswith("$2a$"),
+        "is_plaintext": not (stored_pw.startswith("$2b$") or stored_pw.startswith("$2a$")) and len(stored_pw) > 0,
+        "all_fields": [k for k in user.keys() if k != "password"],
     }
 
 
