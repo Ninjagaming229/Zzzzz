@@ -1,7 +1,9 @@
 fastapi
+uvicorn
 pymongo
 bcrypt
 PyJWT
 httpx
 python-multipart
-pydantic[email]
+pydantic
+email-validator
