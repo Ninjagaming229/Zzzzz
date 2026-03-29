@@ -741,22 +741,51 @@ GEMINI_TEXT_MODELS = [
 ]
 
 class AnalyzeReq(BaseModel):
-    text: str
+    text: str = ""
     system_instruction: str = ""
+    audio_data: str = ""  # Base64 MP3 for Gemini multimodal transcribe+translate
 
 @app.post("/api/ai/analyze")
 async def gemini_analyze_proxy(req: AnalyzeReq, user=Depends(get_current_user)):
     if not GEMINI_KEYS:
         raise HTTPException(503, "AI service not configured")
 
-    payload = {"contents": [{"parts": [{"text": req.text}]}]}
-    if req.system_instruction:
-        payload["systemInstruction"] = {"parts": [{"text": req.system_instruction}]}
+    # ── Build contents: text-only OR audio multimodal ──
+    if req.audio_data:
+        # MULTIMODAL: audio (base64) + instruction → Gemini transcribes + processes in one call
+        import base64 as _b64
+        try:
+            audio_bytes = _b64.b64decode(req.audio_data)
+        except Exception:
+            raise HTTPException(400, "Invalid audio base64 data")
+
+        # Detect mime type
+        mime_type = "audio/mpeg"
+        if audio_bytes[:4] == b'RIFF':
+            mime_type = "audio/wav"
+
+        instruction_text = req.system_instruction or "Transcribe this audio and translate to Burmese."
+
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"inlineData": {"mimeType": mime_type, "data": req.audio_data}},
+                    {"text": instruction_text},
+                ]
+            }]
+        }
+    else:
+        # TEXT-ONLY: existing behavior
+        if not req.text:
+            raise HTTPException(400, "No text or audio provided")
+        payload = {"contents": [{"parts": [{"text": req.text}]}]}
+        if req.system_instruction:
+            payload["systemInstruction"] = {"parts": [{"text": req.system_instruction}]}
 
     last_error = ""
     shuffled_keys = _rotation_order(GEMINI_KEYS)
 
-    async with httpx.AsyncClient(timeout=30) as http:
+    async with httpx.AsyncClient(timeout=60) as http:
         for key in shuffled_keys:
             for model in GEMINI_TEXT_MODELS:
                 try:
