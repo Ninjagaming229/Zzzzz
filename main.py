@@ -635,7 +635,7 @@ async def gemini_tts_proxy(req: GeminiTTSReq, user=Depends(get_current_user)):
     last_error = ""
     shuffled_keys = _rotation_order(GEMINI_KEYS)
 
-    async with httpx.AsyncClient(timeout=30) as http:
+    async with httpx.AsyncClient(timeout=120) as http:
         # Try each key × each model
         for key in shuffled_keys:
             for model in GEMINI_TTS_MODELS:
