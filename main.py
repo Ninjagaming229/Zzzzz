@@ -736,8 +736,10 @@ async def groq_stt_proxy(request: Request, user=Depends(get_current_user)):
 # ═══════════════════════════════════════════
 
 GEMINI_TEXT_MODELS = [
+    "gemini-2.5-flash",
     "gemini-2.0-flash",
-    "gemini-2.5-flash-preview-04-17",
+    "gemini-2.5-pro",
+    "gemini-3-flash-preview",
 ]
 
 class AnalyzeReq(BaseModel):
@@ -750,42 +752,57 @@ async def gemini_analyze_proxy(req: AnalyzeReq, user=Depends(get_current_user)):
     if not GEMINI_KEYS:
         raise HTTPException(503, "AI service not configured")
 
-    # ── Build contents: text-only OR audio multimodal ──
+    # ── Build payload: text-only OR audio multimodal ──
     if req.audio_data:
-        # MULTIMODAL: audio (base64) + instruction → Gemini transcribes + processes in one call
+        # MULTIMODAL: audio + system instruction → Gemini transcribes + translates
         import base64 as _b64
         try:
             audio_bytes = _b64.b64decode(req.audio_data)
+            logging.info(f"Audio analyze: {len(audio_bytes)} bytes received")
         except Exception:
             raise HTTPException(400, "Invalid audio base64 data")
 
-        # Detect mime type
+        # Detect mime type from header bytes
         mime_type = "audio/mpeg"
         if audio_bytes[:4] == b'RIFF':
             mime_type = "audio/wav"
+        elif audio_bytes[:3] == b'fLa':
+            mime_type = "audio/flac"
 
         instruction_text = req.system_instruction or "Transcribe this audio and translate to Burmese."
 
+        # Gemini multimodal format: audio as inlineData + instruction as text
+        # systemInstruction must be SEPARATE from contents
         payload = {
+            "systemInstruction": {"parts": [{"text": instruction_text}]},
             "contents": [{
                 "parts": [
                     {"inlineData": {"mimeType": mime_type, "data": req.audio_data}},
-                    {"text": instruction_text},
                 ]
-            }]
+            }],
+            "generationConfig": {
+                "temperature": 0.3,
+                "maxOutputTokens": 8192,
+            }
         }
     else:
         # TEXT-ONLY: existing behavior
         if not req.text:
             raise HTTPException(400, "No text or audio provided")
-        payload = {"contents": [{"parts": [{"text": req.text}]}]}
+        payload = {
+            "contents": [{"parts": [{"text": req.text}]}],
+            "generationConfig": {
+                "temperature": 0.3,
+                "maxOutputTokens": 8192,
+            }
+        }
         if req.system_instruction:
             payload["systemInstruction"] = {"parts": [{"text": req.system_instruction}]}
 
     last_error = ""
     shuffled_keys = _rotation_order(GEMINI_KEYS)
 
-    async with httpx.AsyncClient(timeout=60) as http:
+    async with httpx.AsyncClient(timeout=120) as http:
         for key in shuffled_keys:
             for model in GEMINI_TEXT_MODELS:
                 try:
@@ -796,21 +813,35 @@ async def gemini_analyze_proxy(req: AnalyzeReq, user=Depends(get_current_user)):
                         data = resp.json()
                         candidates = data.get("candidates", [])
                         if candidates:
-                            text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                            return {"status": "success", "text": text}
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            text = ""
+                            for p in parts:
+                                if "text" in p:
+                                    text += p["text"]
+                            if text:
+                                return {"status": "success", "text": text.strip()}
+                        # No text in response
+                        last_error = f"Empty response from {model}"
+                        logging.warning(f"Gemini analyze: empty response on {model}")
+                        continue
 
                     elif resp.status_code == 429:
                         logging.warning(f"Gemini analyze 429 on key ...{key[-6:]}/{model}")
                         last_error = "Rate limited"
                         continue
                     else:
-                        last_error = resp.text[:200]
+                        # Log the full error for debugging
+                        error_body = resp.text[:500]
+                        logging.error(f"Gemini analyze {resp.status_code} on {model}: {error_body}")
+                        last_error = f"{resp.status_code}: {error_body[:100]}"
                         continue
                 except httpx.TimeoutException:
-                    last_error = "Timeout"
+                    last_error = "Timeout (audio too long?)"
+                    logging.warning(f"Gemini analyze timeout on {model}")
                     continue
                 except Exception as e:
-                    last_error = str(e)
+                    last_error = str(e)[:100]
+                    logging.error(f"Gemini analyze error: {e}")
                     continue
 
     raise HTTPException(503, f"AI analysis failed after trying all keys. Last error: {last_error}")
