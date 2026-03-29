@@ -606,18 +606,56 @@ def _rotation_order(keys: list) -> list:
 # ═══════════════════════════════════════════
 
 # TTS models to try per key: flash first (higher RPM), then pro
+import base64 as _b64_module
+import asyncio
+
+async def _edge_tts_generate(text: str, voice: str) -> dict:
+    """Generate TTS audio using Microsoft Edge TTS (free, no API key)."""
+    try:
+        import edge_tts
+        import io
+        communicate = edge_tts.Communicate(text, voice)
+        audio_chunks = []
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio_chunks.append(chunk["data"])
+        if not audio_chunks:
+            raise HTTPException(503, "Edge TTS returned no audio")
+        audio_bytes = b"".join(audio_chunks)
+        audio_b64 = _b64_module.b64encode(audio_bytes).decode()
+        return {"status": "success", "audio_data": audio_b64, "mime_type": "audio/mpeg"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Edge TTS error: {e}")
+        raise HTTPException(503, f"Edge TTS failed: {str(e)[:200]}")
+
+
 GEMINI_TTS_MODELS = [
     "gemini-2.5-flash-preview-tts",
     "gemini-2.5-pro-preview-tts",
 ]
+
+# Edge TTS voice mapping (Microsoft voices — FREE, no API key)
+EDGE_TTS_VOICES = {
+    "ThihaNeural": "my-MM-ThihaNeural",
+    "NilarNeural": "my-MM-NilarNeural",
+}
 
 class GeminiTTSReq(BaseModel):
     text: str
     voice: str = "Puck"
 
 @app.post("/api/ai/tts")
-async def gemini_tts_proxy(req: GeminiTTSReq, user=Depends(get_current_user)):
+async def tts_proxy(req: GeminiTTSReq, user=Depends(get_current_user)):
+    # ── Edge TTS for Microsoft voices ──
+    edge_voice = EDGE_TTS_VOICES.get(req.voice)
+    if edge_voice:
+        return await _edge_tts_generate(req.text, edge_voice)
+
+    # ── Gemini TTS for all other voices ──
     if not GEMINI_KEYS:
+        raise HTTPException(503, "TTS service not configured")
         raise HTTPException(503, "TTS service not configured")
 
     payload = {
@@ -653,7 +691,7 @@ async def gemini_tts_proxy(req: GeminiTTSReq, user=Depends(get_current_user)):
                                     return {
                                         "status": "success",
                                         "audio_data": part["inlineData"]["data"],
-                                        "mime_type": part["inlineData"].get("mimeType", "audio/mp3"),
+                                        "mime_type": part["inlineData"].get("mimeType", "audio/raw"),
                                     }
 
                     elif resp.status_code == 429:
