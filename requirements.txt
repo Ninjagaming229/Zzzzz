@@ -6,5 +6,4 @@ PyJWT
 httpx
 python-multipart
 pydantic
-email-validator
 edge-tts

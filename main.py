@@ -656,7 +656,6 @@ async def tts_proxy(req: GeminiTTSReq, user=Depends(get_current_user)):
     # ── Gemini TTS for all other voices ──
     if not GEMINI_KEYS:
         raise HTTPException(503, "TTS service not configured")
-        raise HTTPException(503, "TTS service not configured")
 
     payload = {
         "contents": [{"parts": [{"text": req.text}]}],
